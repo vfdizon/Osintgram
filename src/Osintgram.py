@@ -442,6 +442,118 @@ class Osintgram:
 
         print(t)
 
+    def get_no_follow_backs(self):
+        if self.check_private_profile():
+            return
+
+        pc.printout("Searching for target followers...\n")
+
+        _followers = []
+        followers = []
+
+
+        rank_token = AppClient.generate_uuid()
+        data = self.api.user_followers(str(self.target_id), rank_token=rank_token)
+
+        _followers.extend(data.get('users', []))
+
+        next_max_id = data.get('next_max_id')
+        while next_max_id:
+            sys.stdout.write("\rCatched %i followers" % len(_followers))
+            sys.stdout.flush()
+            results = self.api.user_followers(str(self.target_id), rank_token=rank_token, max_id=next_max_id)
+            _followers.extend(results.get('users', []))
+            next_max_id = results.get('next_max_id')
+
+        print("\n")
+            
+        for user in _followers:
+            u = {
+                'id': user['pk'],
+                'username': user['username'],
+                'full_name': user['full_name']
+            }
+            followers.append(u)
+
+        pc.printout("Searching for target followings...\n")
+
+        _followings = []
+        followings = []
+
+        rank_token = AppClient.generate_uuid()
+        data = self.api.user_following(str(self.target_id), rank_token=rank_token)
+
+        _followings.extend(data.get('users', []))
+
+        next_max_id = data.get('next_max_id')
+        while next_max_id:
+            sys.stdout.write("\rCatched %i followings" % len(_followings))
+            sys.stdout.flush()
+            results = self.api.user_following(str(self.target_id), rank_token=rank_token, max_id=next_max_id)
+            _followings.extend(results.get('users', []))
+            next_max_id = results.get('next_max_id')
+
+        print("\n")
+
+        for user in _followings:
+            u = {
+                'id': user['pk'],
+                'username': user['username'],
+                'full_name': user['full_name']
+            }
+            followings.append(u)
+        
+        to_search = None
+        to_match = None
+        if len(followings) > len(followers):
+            to_search = followers
+            to_match = followings
+        else: 
+            to_search = followings
+            to_match = followers
+        
+        follow_back_dict = {}
+        no_follow_back = []
+        for node in to_search: 
+            follow_back_dict[node['id']] = node
+        
+        for node in to_match:
+            if(not follow_back_dict[node['id']]):
+                no_follow_back.append(node)
+
+        t = PrettyTable(['ID', 'Username', 'Full Name'])
+        t.align["ID"] = "l"
+        t.align["Username"] = "l"
+        t.align["Full Name"] = "l"
+
+        json_data = {}
+        followings_list = []
+
+        for node in followers:
+            t.add_row([str(node['id']), node['username'], node['full_name']])
+        print(t)
+
+            # if self.jsonDump:
+            #     follow = {
+            #         'id': node['id'],
+            #         'username': node['username'],
+            #         'full_name': node['full_name']
+            #     }
+            #     followings_list.append(follow)
+
+    #     if self.writeFile:
+    #         file_name = self.output_dir + "/" + self.target + "_followers.txt"
+    #         file = open(file_name, "w")
+    #         file.write(str(t))
+    #         file.close()
+
+    #     if self.jsonDump:
+    #         json_data['followers'] = followers
+    #         json_file_name = self.output_dir + "/" + self.target + "_followers.json"
+    #         with open(json_file_name, 'w') as f:
+    #             json.dump(json_data, f)
+
+
     def get_hashtags(self):
         if self.check_private_profile():
             return
