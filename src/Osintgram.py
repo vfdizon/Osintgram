@@ -453,17 +453,17 @@ class Osintgram:
 
 
         rank_token = AppClient.generate_uuid()
-        data = self.api.user_followers(str(self.target_id), rank_token=rank_token)
+        data_followers = self.api.user_followers(str(self.target_id), rank_token=rank_token)
 
-        _followers.extend(data.get('users', []))
+        _followers.extend(data_followers.get('users', []))
 
-        next_max_id = data.get('next_max_id')
-        while next_max_id:
+        next_max_id_followers = data_followers.get('next_max_id')
+        while next_max_id_followers:
             sys.stdout.write("\rCatched %i followers" % len(_followers))
             sys.stdout.flush()
             results = self.api.user_followers(str(self.target_id), rank_token=rank_token, max_id=next_max_id)
             _followers.extend(results.get('users', []))
-            next_max_id = results.get('next_max_id')
+            next_max_id_followers = results.get('next_max_id')
 
         print("\n")
             
@@ -480,18 +480,17 @@ class Osintgram:
         _followings = []
         followings = []
 
-        rank_token = AppClient.generate_uuid()
-        data = self.api.user_following(str(self.target_id), rank_token=rank_token)
+        data_followings = self.api.user_following(str(self.target_id), rank_token=rank_token)
 
-        _followings.extend(data.get('users', []))
+        _followings.extend(data_followings.get('users', []))
 
-        next_max_id = data.get('next_max_id')
-        while next_max_id:
+        next_max_id_followings = data_followings.get('next_max_id')
+        while next_max_id_followings:
             sys.stdout.write("\rCatched %i followings" % len(_followings))
             sys.stdout.flush()
             results = self.api.user_following(str(self.target_id), rank_token=rank_token, max_id=next_max_id)
             _followings.extend(results.get('users', []))
-            next_max_id = results.get('next_max_id')
+            next_max_id_followings = results.get('next_max_id')
 
         print("\n")
 
@@ -502,23 +501,17 @@ class Osintgram:
                 'full_name': user['full_name']
             }
             followings.append(u)
+
+        print("Matching followers to following... \n")
         
-        to_search = None
-        to_match = None
-        if len(followings) > len(followers):
-            to_search = followers
-            to_match = followings
-        else: 
-            to_search = followings
-            to_match = followers
         
         follow_back_dict = {}
         no_follow_back = []
-        for node in to_search: 
-            follow_back_dict[node['id']] = node
+        for node in followers: 
+            follow_back_dict[node['username']] = node
         
-        for node in to_match:
-            if(not follow_back_dict[node['id']]):
+        for node in followings:
+            if(not node['username'] in follow_back_dict):
                 no_follow_back.append(node)
 
         t = PrettyTable(['ID', 'Username', 'Full Name'])
@@ -527,31 +520,32 @@ class Osintgram:
         t.align["Full Name"] = "l"
 
         json_data = {}
-        followings_list = []
+        no_follow_back_list = []
 
-        for node in followers:
+        for node in no_follow_back:
             t.add_row([str(node['id']), node['username'], node['full_name']])
+
+            if self.jsonDump:
+                follow = {
+                    'id': node['id'],
+                    'username': node['username'],
+                    'full_name': node['full_name']
+                }
+                no_follow_back_list.append(follow)
+
+        if self.writeFile:
+            file_name = self.output_dir + "/" + self.target + "_no_follow_back.txt"
+            file = open(file_name, "w")
+            file.write(str(t))
+            file.close()
+
+        if self.jsonDump:
+            json_data['no_follow_back'] = no_follow_back_list 
+            json_file_name = self.output_dir + "/" + self.target + "_no_follow_back.json"
+            with open(json_file_name, 'w') as f:
+                json.dump(json_data, f)
+        
         print(t)
-
-            # if self.jsonDump:
-            #     follow = {
-            #         'id': node['id'],
-            #         'username': node['username'],
-            #         'full_name': node['full_name']
-            #     }
-            #     followings_list.append(follow)
-
-    #     if self.writeFile:
-    #         file_name = self.output_dir + "/" + self.target + "_followers.txt"
-    #         file = open(file_name, "w")
-    #         file.write(str(t))
-    #         file.close()
-
-    #     if self.jsonDump:
-    #         json_data['followers'] = followers
-    #         json_file_name = self.output_dir + "/" + self.target + "_followers.json"
-    #         with open(json_file_name, 'w') as f:
-    #             json.dump(json_data, f)
 
 
     def get_hashtags(self):

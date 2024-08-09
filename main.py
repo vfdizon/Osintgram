@@ -149,7 +149,8 @@ commands = {
     'tagged':           api.get_people_tagged_by_user,
     'target':           api.change_target,
     'wcommented':       api.get_people_who_commented,
-    'wtagged':          api.get_people_who_tagged
+    'wtagged':          api.get_people_who_tagged,
+    'nofollowback':     api.get_no_follow_backs
 }
 
 
